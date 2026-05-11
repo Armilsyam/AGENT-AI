@@ -18,13 +18,13 @@ st.markdown("Asisten ini tidak membebani komputer lokal Anda. Ia memiliki kemamp
 # 2. MENGAMBIL KUNCI RAHASIA (API KEY)
 # ==========================================
 # Mengambil API Key dari Streamlit Secrets (Aman di Cloud)
-api_key = st.secrets.get("GOOGLE_API_KEY")
+api_key = st.secrets.get("AIzaSyBSudsAHWsMqvms3aWLElL1n4CPppDfxJI")
 
 if not api_key:
     st.warning("⚠️ GOOGLE_API_KEY belum diatur di Streamlit Secrets! Silakan atur terlebih dahulu sesuai panduan.")
     st.stop()
 
-os.environ["GOOGLE_API_KEY"] = api_key
+os.environ["AIzaSyBSudsAHWsMqvms3aWLElL1n4CPppDfxJI"] = api_key
 
 # ==========================================
 # 3. INISIALISASI OTAK AI & ALAT (TOOLS)
