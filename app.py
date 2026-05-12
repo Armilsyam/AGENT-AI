@@ -1,4 +1,5 @@
 import os
+import asyncio
 
 # [TRICK PYTHON 3.14] Memaksa sistem menggunakan Protobuf versi murni (Pure Python) 
 # Ini sangat penting agar terhindar dari error 'Metaclasses with custom tp_new' di Python 3.14
@@ -15,8 +16,8 @@ from langchain_core.messages import AIMessage, HumanMessage
 # 1. PENGATURAN HALAMAN
 # ==========================================
 st.set_page_config(page_title="AI Agent Super - Asisten Pribadi", page_icon="🤖", layout="wide")
-st.title("⚡ AI Agent Super Cerdas (Python 3.14 Ready)")
-st.markdown("Berjalan mulus di Python 3.14 dengan mesin AI modern dan kemampuan pencarian internet.")
+st.title("⚡ AI Agent Super Cerdas")
+st.markdown("Berjalan dengan mesin AI modern dan kemampuan pencarian internet.")
 
 # ==========================================
 # 2. MENGAMBIL KUNCI RAHASIA (API KEY)
@@ -34,6 +35,12 @@ os.environ["GOOGLE_API_KEY"] = api_key
 # ==========================================
 @st.cache_resource
 def setup_agent():
+    # [TRICK ASYNCIO] Mengatasi error 'no current event loop' di Streamlit
+    try:
+        asyncio.get_event_loop()
+    except RuntimeError:
+        asyncio.set_event_loop(asyncio.new_event_loop())
+
     # Otak Utama (Gemini 1.5 Flash - Cepat & Pintar)
     llm = ChatGoogleGenerativeAI(
         model="gemini-1.5-flash", 
@@ -68,7 +75,7 @@ agent_executor = setup_agent()
 # ==========================================
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Halo Bos! Sistem sudah di-upgrade penuh untuk Python 3.14. Apa tugas kita hari ini?"}
+        {"role": "assistant", "content": "Halo Bos! Sistem sudah berhasil booting. Apa tugas kita hari ini?"}
     ]
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
