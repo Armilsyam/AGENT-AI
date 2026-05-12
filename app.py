@@ -11,13 +11,15 @@ from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage, HumanMessage
+# TAMBAHAN BARU: Import Streamlit Callback agar proses berpikir terlihat live & satset
+from langchain_community.callbacks import StreamlitCallbackHandler
 
 # ==========================================
 # 1. PENGATURAN HALAMAN
 # ==========================================
-st.set_page_config(page_title="AI Agent Super - Asisten Pribadi", page_icon="🤖", layout="wide")
-st.title("⚡ AI Agent Super Cerdas")
-st.markdown("Berjalan dengan mesin AI modern dan kemampuan pencarian internet.")
+st.set_page_config(page_title="AI Agent Super - Asisten Pribadi", page_icon="⚡", layout="wide")
+st.title("⚡ AI Agent Super Cerdas (Versi Ngebut)")
+st.markdown("Berjalan dengan mesin AI modern, memori pintar, dan fitur Live Tracking.")
 
 # ==========================================
 # 2. MENGAMBIL KUNCI RAHASIA (API KEY)
@@ -41,30 +43,39 @@ def setup_agent():
     except RuntimeError:
         asyncio.set_event_loop(asyncio.new_event_loop())
 
-    # Otak Utama (Gemini 1.5 Flash - Cepat & Pintar)
+    # Otak Utama (Gemini 1.5 Flash)
     llm = ChatGoogleGenerativeAI(
         model="gemini-1.5-flash", 
-        temperature=0.3
+        temperature=0.3,
+        streaming=True  # TAMBAHAN: Biar hasil ketikan keluar lebih cepat
     )
     
     # Alat 1: Pencarian Internet Gratis
     search_tool = DuckDuckGoSearchRun(
         name="Search_Internet",
-        description="Gunakan ini untuk mencari informasi, berita, atau fakta terbaru di internet."
+        description="Gunakan ini HANYA JIKA butuh fakta/berita terbaru hari ini. Jika tidak tahu, cari di sini."
     )
     tools = [search_tool]
     
-    # Prompt Modern (Instruksi Kepribadian)
+    # Prompt Modern
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "Kamu adalah AI Agent Super cerdas milik pengguna. Tugasmu adalah membantu mengerjakan APAPUN. Jika ditanya informasi terkini, GUNAKAN tool Search_Internet. Berbicaralah dalam bahasa Indonesia yang asik."),
+        ("system", "Kamu adalah AI Agent Super cerdas. Tugasmu adalah membantu dengan CEPAT, AKURAT, dan SATSET. Jangan terlalu banyak berbasa-basi. Jika butuh data internet, gunakan tool Search_Internet. Jika tool gagal/lama, langsung jawab sebisamu dengan pengetahuanmu."),
         MessagesPlaceholder(variable_name="chat_history"),
         ("human", "{input}"),
         MessagesPlaceholder(variable_name="agent_scratchpad"),
     ])
     
-    # Merakit Agent Modern (Pengganti versi lama yang error)
+    # Merakit Agent
     agent = create_tool_calling_agent(llm, tools, prompt)
-    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+    
+    # TAMBAHAN BARU: Membatasi waktu agar AI tidak nyangkut memikirkan hal yang sama berulang kali
+    agent_executor = AgentExecutor(
+        agent=agent, 
+        tools=tools, 
+        verbose=True,
+        max_iterations=3,      # Maksimal 3 kali putaran mikir
+        max_execution_time=15  # Waktu maksimal pencarian tool adalah 15 detik
+    )
     
     return agent_executor
 
@@ -75,7 +86,7 @@ agent_executor = setup_agent()
 # ==========================================
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Halo Bos! Sistem sudah berhasil booting. Apa tugas kita hari ini?"}
+        {"role": "assistant", "content": "Halo Bos! Mesin jet sudah dinyalakan. Siap mengerjakan tugas dengan satset!"}
     ]
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -87,7 +98,7 @@ for msg in st.session_state.messages:
 # ==========================================
 # 5. INPUT PENGGUNA & PROSES AI
 # ==========================================
-user_query = st.chat_input("Perintahkan tugas Anda di sini...")
+user_query = st.chat_input("Ketik tugas Anda di sini...")
 
 if user_query:
     st.session_state.messages.append({"role": "user", "content": user_query})
@@ -95,27 +106,32 @@ if user_query:
         st.markdown(user_query)
         
     with st.chat_message("assistant"):
-        with st.spinner("Sedang berpikir dan mencari di internet jika perlu... ⏳"):
-            try:
-                # Eksekusi agen
-                response = agent_executor.invoke({
+        # TAMBAHAN BARU: Memunculkan jejak pemikiran AI secara Live (bukan cuma loading muter)
+        st_callback = StreamlitCallbackHandler(st.container(), expand_new_thoughts=True)
+        
+        try:
+            # Eksekusi agen dengan callback untuk efek live dan transparan
+            response = agent_executor.invoke(
+                {
                     "input": user_query,
                     "chat_history": st.session_state.chat_history
-                })
+                },
+                {"callbacks": [st_callback]}
+            )
+            
+            output_text = response["output"]
+            st.markdown(output_text)
+            
+            # Simpan ke history Streamlit
+            st.session_state.messages.append({"role": "assistant", "content": output_text})
+            
+            # Simpan ke memori LangChain (Maksimal 10 percakapan)
+            st.session_state.chat_history.append(HumanMessage(content=user_query))
+            st.session_state.chat_history.append(AIMessage(content=output_text))
+            if len(st.session_state.chat_history) > 10:
+                st.session_state.chat_history = st.session_state.chat_history[-10:]
                 
-                output_text = response["output"]
-                st.markdown(output_text)
-                
-                # Simpan ke history Streamlit
-                st.session_state.messages.append({"role": "assistant", "content": output_text})
-                
-                # Simpan ke memori LangChain (Maksimal 10 percakapan agar tidak berat)
-                st.session_state.chat_history.append(HumanMessage(content=user_query))
-                st.session_state.chat_history.append(AIMessage(content=output_text))
-                if len(st.session_state.chat_history) > 10:
-                    st.session_state.chat_history = st.session_state.chat_history[-10:]
-                    
-            except Exception as e:
-                error_msg = f"Mohon maaf, terjadi kesalahan sistem: {e}"
-                st.error(error_msg)
-                st.session_state.messages.append({"role": "assistant", "content": error_msg})
+        except Exception as e:
+            error_msg = f"⚠️ Proses dihentikan karena server internet terlalu lama merespon atau error: {e}"
+            st.error(error_msg)
+            st.session_state.messages.append({"role": "assistant", "content": error_msg})
