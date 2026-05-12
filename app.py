@@ -43,9 +43,9 @@ def setup_agent():
     except RuntimeError:
         asyncio.set_event_loop(asyncio.new_event_loop())
 
-    # Otak Utama (Gemini 1.5 Flash)
+    # Otak Utama (Gemini 1.5 Flash - Menggunakan tag latest agar tidak Error 404)
     llm = ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash", 
+        model="gemini-1.5-flash-latest", 
         temperature=0.3,
         streaming=True  # TAMBAHAN: Biar hasil ketikan keluar lebih cepat
     )
