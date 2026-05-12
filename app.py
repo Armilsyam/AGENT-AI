@@ -5,6 +5,7 @@ import asyncio
 # Ini sangat penting agar terhindar dari error 'Metaclasses with custom tp_new' di Python 3.14
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
+pip install "indonesia-civic-stack[mcp]
 import streamlit as st
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import AgentExecutor, create_tool_calling_agent
